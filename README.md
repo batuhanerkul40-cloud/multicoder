@@ -122,7 +122,7 @@ Uygulamanın `src/` kaynağı bu makinede yok; değişiklikler derlenmiş `dist`
 
 ```bash
 cd "<proje-klasörü>"
-npx electron-builder@latest --prepackaged "MultiCoder" --win nsis --x64 -c.electronVersion=45.0.0
+npx electron-builder@latest --prepackaged "MultiCoder" --win nsis --x64 --config.electronVersion=45.0.0
 ```
 
 Çıktı: `installer/MultiCoder-Setup-0.2.1.exe` (imzasız — Windows SmartScreen uyarabilir).
