@@ -1,0 +1,1762 @@
+/* MultiCoder - "opencode" shell (oc-*)
+ * A minimal single-stream workbench laid over the existing React chrome.
+ * Every rule is scoped to html[data-oc="1"], so switching to "classic"
+ * (data-oc="classic") instantly restores the original VS Code-style layout.
+ * Colours come exclusively from the .pg-theme tokens so all three materials
+ * and both light/dark modes keep working.
+ */
+
+/* One type scale and one z-index ladder for the whole workbench. Every rule in
+ * this file, in chat-workbench.js and in the zen theme sheet picks from these,
+ * so a new surface never invents an 11.5px size or a 9400. */
+:root {
+  --oc-text-1: 11px;   /* meta, hints, first-level labels */
+  --oc-text-2: 12px;   /* secondary interface text */
+  --oc-text-3: 13px;   /* body, transcript */
+  --oc-text-4: 15px;   /* section titles */
+  --oc-text-5: 18px;   /* dialog and page titles */
+  --oc-text-display: clamp(22px, 2.8vw, 30px);
+
+  --oc-z-canvas: 10;      /* editor pane inside the shell */
+  --oc-z-canvas-top: 20;  /* its close button */
+  --oc-z-shell: 30;       /* the shell itself */
+  --oc-z-scrim: 40;       /* click-catcher behind drawers */
+  --oc-z-drawer: 50;      /* explorer / extensions drawer */
+  --oc-z-overlay: 60;     /* command palette, theme overlay */
+  --oc-z-dialog: 70;      /* workbench settings */
+  --oc-z-popover: 80;     /* model and debate popovers */
+  --oc-z-sheet: 90;       /* theme close sheet */
+  --oc-z-toast: 100;      /* toasts */
+  --oc-z-modal: 110;      /* React app dialogs, above all of the above */
+}
+
+html[data-oc] {
+  --oc-max: 880px;
+  --oc-head-h: 40px;
+  --oc-editor-w: clamp(420px, 46vw, 760px);
+  --oc-r: 3px;
+  --oc-ui: var(--ui-font, system-ui, -apple-system, "Segoe UI", sans-serif);
+  --oc-mono: var(--mono-font, ui-monospace, "Cascadia Code", "JetBrains Mono", Consolas, monospace);
+  --oc-line: var(--border, #2b2f33);
+  --oc-line-strong: var(--border-strong, #3e4449);
+  --oc-bg: var(--bg, #0e0f10);
+  --oc-panel: var(--panel, #16181a);
+  --oc-panel-alt: var(--panel-alt, #1b1e20);
+  --oc-hover: var(--panel-hover, #22262a);
+  --oc-fg: var(--text, #e9e6de);
+  --oc-dim: var(--muted, #a2a29c);
+  --oc-accent: var(--accent, #e9e6de);
+  --oc-accent-ink: var(--accent-ink, #0e0f10);
+  --oc-soft: var(--accent-soft, rgba(233, 230, 222, 0.10));
+  --oc-ok: var(--ok, #93af8a);
+  --oc-warn: var(--warn, #d2a75c);
+  --oc-err: var(--error, #e08a7c);
+  --oc-shadow: var(--shadow, 4px 4px 0 rgba(0, 0, 0, 0.5));
+  --oc-ring: 0 0 0 1px var(--oc-accent);
+}
+
+/* ------------------------------------------------------------------ */
+/* chrome that disappears                                              */
+/* ------------------------------------------------------------------ */
+
+html[data-oc="1"] .activity-bar,
+html[data-oc="1"] .agent-panel,
+html[data-oc="1"] .status-bar {
+  display: none !important;
+}
+
+/* the chat pane takes the whole window */
+html[data-oc="1"] .center-column {
+  position: fixed;
+  inset: var(--oc-head-h) 0 0 0;
+  display: block;
+  overflow: hidden;
+  background: var(--oc-bg);
+}
+
+/* explorer / extensions live in a drawer, not a permanent panel */
+html[data-oc="1"] .sidebar {
+  position: fixed;
+  top: var(--oc-head-h);
+  bottom: 0;
+  left: 0;
+  width: 316px;
+  max-width: 86vw;
+  z-index: var(--oc-z-drawer);
+  display: flex !important;
+  flex-direction: column;
+  background: var(--oc-panel);
+  border-right: 1px solid var(--oc-line);
+  box-shadow: var(--oc-shadow);
+  transform: translateX(-102%);
+  visibility: hidden;
+  transition: transform 180ms ease, visibility 180ms;
+}
+
+html[data-oc="1"][data-oc-drawer] .sidebar {
+  transform: none;
+  visibility: visible;
+}
+
+html[data-oc="1"] .oc-scrim {
+  position: fixed;
+  inset: var(--oc-head-h) 0 0 0;
+  z-index: var(--oc-z-scrim);
+  background: var(--backdrop, rgba(6, 8, 16, 0.55));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+}
+
+html[data-oc="1"][data-oc-drawer] .oc-scrim {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ------------------------------------------------------------------ */
+/* header                                                             */
+/* ------------------------------------------------------------------ */
+
+#oc-shell {
+  position: fixed;
+  inset: 0;
+  z-index: var(--oc-z-shell);
+  pointer-events: none;
+  font-family: var(--oc-ui);
+  color: var(--oc-fg);
+}
+
+/* the window is frameless, so the title bar stays in both skins */
+html[data-oc="classic"] #oc-shell {
+  display: block;
+}
+
+html[data-oc="classic"] .oc-head-chips,
+html[data-oc="classic"] #oc-welcome {
+  display: none !important;
+}
+
+html[data-oc="classic"] #root {
+  height: calc(100% - var(--oc-head-h));
+  margin-top: var(--oc-head-h);
+}
+
+html[data-oc="classic"] .app {
+  height: 100%;
+}
+
+/* the hint/shell strips live inside the chat dock, so drop them in classic */
+html[data-oc="classic"] .oc-hint,
+html[data-oc="classic"] .oc-shellout {
+  display: none !important;
+}
+
+.oc-head {
+  pointer-events: auto;
+  height: var(--oc-head-h);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 0 12px;
+  background: var(--oc-bg);
+  border-bottom: 1px solid var(--oc-line);
+  font-size: var(--oc-text-2);
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+.oc-head button,
+.oc-head select,
+.oc-head input,
+.oc-head a {
+  -webkit-app-region: no-drag;
+}
+
+.oc-brand {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding-right: 2px;
+}
+
+.oc-brand svg {
+  color: var(--oc-accent);
+  opacity: 0.9;
+}
+
+.oc-brand-name {
+  font-size: var(--oc-text-2);
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: var(--oc-fg);
+}
+
+.oc-head-chips {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* window controls -------------------------------------------------- */
+
+.oc-win {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  margin-left: 6px;
+}
+
+.oc-win-btn {
+  width: 44px;
+  height: var(--oc-head-h);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--oc-dim);
+  cursor: pointer;
+  transition: background 110ms ease, color 110ms ease;
+}
+
+.oc-win-btn:hover {
+  background: var(--oc-hover);
+  color: var(--oc-fg);
+}
+
+.oc-win-close:hover {
+  background: #e08a7c;
+  color: #fff;
+}
+
+.oc-win-btn:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--oc-accent);
+}
+
+.oc-crumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--oc-dim);
+}
+
+.oc-crumb strong {
+  color: var(--oc-fg);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.oc-crumb .oc-sep {
+  opacity: 0.45;
+}
+
+.oc-spacer {
+  flex: 1;
+}
+
+.oc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--oc-r);
+  color: var(--oc-dim);
+  font: inherit;
+  font-size: var(--oc-text-1);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.oc-chip:hover {
+  background: var(--oc-hover);
+  color: var(--oc-fg);
+}
+
+.oc-chip:focus-visible {
+  outline: none;
+  box-shadow: var(--oc-ring);
+}
+
+.oc-chip.is-on {
+  border-color: var(--oc-line-strong);
+  color: var(--oc-fg);
+}
+
+.oc-chip .oc-kbd {
+  font-family: var(--oc-mono);
+  font-size: var(--oc-text-1);
+  opacity: 0.6;
+}
+
+/* ------------------------------------------------------------------ */
+/* transcript + composer (chat-workbench dock, restyled)               */
+/* ------------------------------------------------------------------ */
+
+html[data-oc="1"] .pg-chat-dock {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  gap: 0;
+}
+
+html[data-oc="1"][data-oc-editor="open"] .pg-chat-dock {
+  right: var(--oc-editor-w);
+}
+
+html[data-oc="1"] .pg-chat-log {
+  order: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: var(--oc-max);
+  margin: 0 auto;
+  padding: 22px 24px 10px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb, #3e4449) transparent;
+}
+
+html[data-oc="1"] .pg-chat-log::-webkit-scrollbar {
+  width: 10px;
+}
+
+html[data-oc="1"] .pg-chat-log::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb, #3e4449);
+  border-radius: var(--oc-r);
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+/* message rows ----------------------------------------------------- */
+
+html[data-oc="1"] .pg-msg {
+  display: block;
+  padding: 9px 0;
+  border: 0;
+  background: transparent;
+  animation: oc-row-in 140ms ease both;
+}
+
+@keyframes oc-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+html[data-oc="1"] .pg-msg-left {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0 0 4px;
+  font-size: var(--oc-text-1);
+  letter-spacing: 0.03em;
+  color: var(--oc-dim);
+  opacity: 0.55;
+  transition: opacity 140ms ease;
+  order: 0;
+}
+
+html[data-oc="1"] .pg-msg:hover .pg-msg-left,
+html[data-oc="1"] .pg-msg:focus-within .pg-msg-left {
+  opacity: 1;
+}
+
+html[data-oc="1"] .pg-msg-prov,
+html[data-oc="1"] .pg-msg-model {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font: inherit;
+}
+
+html[data-oc="1"] .pg-msg-model::before {
+  content: "·";
+  margin-right: 6px;
+  opacity: 0.5;
+}
+
+html[data-oc="1"] .pg-msg-content {
+  display: block;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+/* the raw text stays in the DOM for the workbench's diffing but is not shown:
+   .oc-render carries the formatted view */
+html[data-oc="1"] .pg-msg-text {
+  display: none !important;
+}
+
+html[data-oc="1"] .oc-render {
+  font-size: var(--oc-text-3);
+  line-height: 1.66;
+  color: var(--oc-fg);
+  overflow-wrap: anywhere;
+}
+
+html[data-oc="1"] .pg-msg.user .oc-render {
+  border-left: 2px solid var(--oc-accent);
+  padding-left: 12px;
+}
+
+html[data-oc="1"] .pg-msg.user .oc-plain::before {
+  content: "› ";
+  color: var(--oc-accent);
+  font-family: var(--oc-mono);
+}
+
+html[data-oc="1"] .pg-msg.error .oc-render {
+  border-left: 2px solid var(--oc-err);
+  padding-left: 12px;
+  color: var(--oc-err);
+  font-family: var(--oc-mono);
+  font-size: var(--oc-text-2);
+}
+
+html[data-oc="1"] .pg-round {
+  margin: 6px 0;
+  padding: 0;
+  border: 0;
+  text-align: center;
+  font-size: var(--oc-text-1);
+  color: var(--oc-dim);
+  opacity: 1;
+}
+
+html[data-oc="1"] .pg-round::before,
+html[data-oc="1"] .pg-round::after {
+  content: "";
+  display: inline-block;
+  width: 24px;
+  height: 1px;
+  margin: 0 8px 3px;
+  background: var(--oc-line);
+}
+
+html[data-oc="1"] .pg-chat-empty {
+  max-width: 520px;
+  margin: 0;
+  text-align: left;
+  padding: 4vh 0 0;
+  font-size: var(--oc-text-3);
+  line-height: 1.7;
+  color: var(--oc-dim);
+  transition: opacity 180ms ease;
+}
+
+/* no duplicate greeting while the welcome surface is up */
+html[data-oc="1"][data-oc-welcome] .pg-chat-empty {
+  opacity: 0;
+  pointer-events: none;
+}
+
+html[data-oc="1"] .pg-chat-empty strong {
+  color: var(--oc-fg);
+  font-weight: 600;
+}
+
+html[data-oc="1"] .oc-welcome-title {
+  margin-bottom: 6px;
+  font-size: var(--oc-text-4);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--oc-fg);
+}
+
+html[data-oc="1"] .oc-welcome-sub {
+  font-size: var(--oc-text-3);
+  color: var(--oc-dim);
+}
+
+html[data-oc="1"] .pg-chat-thinking {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: var(--oc-text-2);
+  color: var(--oc-dim);
+}
+
+/* markdown-lite ---------------------------------------------------- */
+
+html[data-oc="1"] .oc-p {
+  margin: 0 0 10px;
+  white-space: pre-wrap;
+}
+
+html[data-oc="1"] .oc-p:last-child {
+  margin-bottom: 0;
+}
+
+html[data-oc="1"] .oc-h {
+  margin: 14px 0 6px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+html[data-oc="1"] .oc-h1 {
+  font-size: var(--oc-text-5);
+}
+
+html[data-oc="1"] .oc-h2 {
+  font-size: var(--oc-text-4);
+}
+
+html[data-oc="1"] .oc-h3,
+html[data-oc="1"] .oc-h4,
+html[data-oc="1"] .oc-h5,
+html[data-oc="1"] .oc-h6 {
+  font-size: var(--oc-text-3);
+  color: var(--oc-dim);
+}
+
+html[data-oc="1"] .oc-ul,
+html[data-oc="1"] .oc-ol {
+  margin: 0 0 10px;
+  padding-left: 18px;
+}
+
+html[data-oc="1"] .oc-ul li,
+html[data-oc="1"] .oc-ol li {
+  margin: 3px 0;
+}
+
+html[data-oc="1"] .oc-quote {
+  margin: 0 0 10px;
+  padding: 2px 0 2px 12px;
+  border-left: 2px solid var(--oc-line-strong);
+  color: var(--oc-dim);
+}
+
+html[data-oc="1"] .oc-inline-code {
+  padding: 1px 5px;
+  border-radius: var(--oc-r);
+  background: var(--oc-panel-alt);
+  border: 1px solid var(--oc-line);
+  font-family: var(--oc-mono);
+  font-size: var(--oc-text-2);
+}
+
+html[data-oc="1"] .oc-link {
+  color: var(--oc-accent);
+  text-decoration: none;
+  border-bottom: 1px solid var(--oc-soft);
+}
+
+html[data-oc="1"] .oc-code {
+  position: relative;
+  margin: 4px 0 12px;
+  padding: 26px 12px 12px;
+  border: 1px solid var(--oc-line);
+  border-radius: var(--oc-r);
+  background: var(--oc-panel-alt);
+  overflow: auto;
+  max-height: 340px;
+  font-family: var(--oc-mono);
+  font-size: var(--oc-text-2);
+  line-height: 1.55;
+  tab-size: 2;
+}
+
+html[data-oc="1"] .oc-code code {
+  font: inherit;
+  white-space: pre;
+  color: var(--oc-fg);
+}
+
+html[data-oc="1"] .oc-code-lang {
+  position: absolute;
+  top: 7px;
+  left: 12px;
+  font-size: var(--oc-text-1);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--oc-dim);
+}
+
+html[data-oc="1"] .oc-copy {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  height: 20px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: var(--oc-r);
+  background: transparent;
+  color: var(--oc-dim);
+  font: inherit;
+  font-size: var(--oc-text-1);
+  cursor: pointer;
+}
+
+html[data-oc="1"] .oc-copy:hover {
+  border-color: var(--oc-line-strong);
+  color: var(--oc-fg);
+}
+
+/* tool rows -------------------------------------------------------- */
+
+html[data-oc="1"] .oc-tool {
+  border: 1px solid transparent;
+  border-radius: var(--oc-r);
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+html[data-oc="1"] .oc-tool:hover {
+  border-color: var(--oc-line);
+  background: var(--oc-panel);
+}
+
+html[data-oc="1"] .oc-tool-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--oc-r);
+  color: var(--oc-dim);
+  font: inherit;
+  font-family: var(--oc-mono);
+  font-size: var(--oc-text-2);
+  text-align: left;
+  cursor: pointer;
+}
+
+html[data-oc="1"] .oc-tool-head:focus-visible {
+  outline: none;
+  box-shadow: var(--oc-ring);
+}
+
+html[data-oc="1"] .oc-glyph {
+  flex: 0 0 auto;
+  width: 13px;
+  text-align: center;
+  color: var(--oc-accent);
+}
+
+html[data-oc="1"] .oc-tool[data-state="ok"] .oc-glyph {
+  color: var(--oc-ok);
+}
+
+html[data-oc="1"] .oc-tool[data-state="err"] .oc-glyph {
+  color: var(--oc-err);
+}
+
+html[data-oc="1"] .oc-tool-name {
+  color: var(--oc-fg);
+  font-weight: 600;
+}
+
+html[data-oc="1"] .oc-tool-arg {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: 0.85;
+}
+
+html[data-oc="1"] .oc-tool-caret {
+  flex: 0 0 auto;
+  transition: transform 140ms ease;
+  opacity: 0.6;
+}
+
+html[data-oc="1"] .oc-tool[data-open="1"] .oc-tool-caret {
+  transform: rotate(90deg);
+}
+
+html[data-oc="1"] .oc-tool-body {
+  display: none;
+  padding: 0 10px 8px 31px;
+}
+
+html[data-oc="1"] .oc-tool[data-open="1"] .oc-tool-body {
+  display: block;
+}
+
+html[data-oc="1"] .oc-tool-body pre {
+  margin: 0;
+  padding: 8px 10px;
+  max-height: 300px;
+  overflow: auto;
+  border: 1px solid var(--oc-line);
+  border-radius: var(--oc-r);
+  background: var(--oc-panel-alt);
+  font-family: var(--oc-mono);
+  font-size: var(--oc-text-2);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  color: var(--oc-dim);
+}
+
+html[data-oc="1"] .oc-tool-open {
+  margin-top: 6px;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--oc-line-strong);
+  border-radius: var(--oc-r);
+  background: transparent;
+  color: var(--oc-dim);
+  font: inherit;
+  font-size: var(--oc-text-1);
+  cursor: pointer;
+}
+
+html[data-oc="1"] .oc-tool-open:hover {
+  color: var(--oc-fg);
+  background: var(--oc-hover);
+}
+
+/* shell output ----------------------------------------------------- */
+
+html[data-oc="1"] .oc-shellout {
+  order: 2;
+  width: 100%;
+  max-width: var(--oc-max);
+  margin: 0 auto 8px;
+  padding: 0 24px;
+  flex: 0 0 auto;
+}
+
+html[data-oc="1"] .oc-shellout-card {
+  border: 1px solid var(--oc-line);
+  border-radius: var(--oc-r);
+  background: var(--oc-panel);
+  overflow: hidden;
+}
+
+html[data-oc="1"] .oc-shellout-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--oc-line);
+  font-family: var(--oc-mono);
+  font-size: var(--oc-text-1);
+  color: var(--oc-dim);
+}
+
+html[data-oc="1"] .oc-shellout-head strong {
+  color: var(--oc-fg);
+  font-weight: 600;
+}
+
+html[data-oc="1"] .oc-shellout-close {
+  margin-left: auto;
+  height: 20px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: var(--oc-r);
+  background: transparent;
+  color: var(--oc-dim);
+  font: inherit;
+  font-size: var(--oc-text-1);
+  cursor: pointer;
+}
+
+html[data-oc="1"] .oc-shellout-close:hover {
+  border-color: var(--oc-line-strong);
+  color: var(--oc-fg);
+}
+
+html[data-oc="1"] .oc-shellout-body {
+  margin: 0;
+  padding: 8px 10px;
+  max-height: 180px;
+  overflow: auto;
+  font-family: var(--oc-mono);
+  font-size: var(--oc-text-2);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  color: var(--oc-dim);
+}
+
+/* composer --------------------------------------------------------- */
+
+html[data-oc="1"] .pg-chat-head {
+  order: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  max-width: var(--oc-max);
+  margin: 0 auto;
+  padding: 8px 12px 4px;
+  border: 1px solid var(--oc-line-strong);
+  border-bottom: 0;
+  border-radius: var(--oc-r) var(--oc-r) 0 0;
+  background: var(--oc-panel);
+}
+
+html[data-oc="1"] .pg-chat-head .pg-chat-title,
+html[data-oc="1"] .pg-chat-head .pg-chat-where,
+html[data-oc="1"] .pg-chat-head .pg-chat-spacer {
+  display: none;
+}
+
+html[data-oc="1"] .pg-chat-select,
+html[data-oc="1"] .pg-chat-model-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--oc-r);
+  background: transparent;
+  color: var(--oc-dim);
+  font: inherit;
+  font-size: var(--oc-text-1);
+  cursor: pointer;
+  max-width: 100%;
+}
+
+/* native <select> keeps its OS box unless we opt out */
+html[data-oc="1"] select.pg-chat-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 18px;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+}
+
+html[data-oc="1"] .pg-debate-btn {
+  border-radius: var(--oc-r);
+  padding: 0 7px;
+}
+
+html[data-oc="1"] .pg-debate-badge {
+  min-width: 14px;
+  height: 14px;
+  padding: 0 4px;
+  font-size: var(--oc-text-1);
+  line-height: 14px;
+  border-radius: var(--oc-r);
+  background: var(--oc-soft);
+  color: var(--oc-accent);
+}
+
+html[data-oc="1"] .pg-chat-select:hover,
+html[data-oc="1"] .pg-chat-model-btn:hover {
+  background: var(--oc-hover);
+  color: var(--oc-fg);
+}
+
+html[data-oc="1"] .pg-chat-select:focus-visible,
+html[data-oc="1"] .pg-chat-model-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--oc-ring);
+}
+
+html[data-oc="1"] .pg-chat-select option {
+  background: var(--oc-panel);
+  color: var(--oc-fg);
+}
+
+html[data-oc="1"] .pg-chat-status {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--oc-text-1);
+  color: var(--oc-dim);
+}
+
+html[data-oc="1"] .pg-chat-status.running {
+  color: var(--oc-accent);
+}
+
+html[data-oc="1"] .pg-chat-status.done {
+  color: var(--oc-ok);
+}
+
+html[data-oc="1"] .pg-chat-status.error {
+  color: var(--oc-err);
+}
+
+html[data-oc="1"] .pg-composer {
+  order: 4;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  width: 100%;
+  max-width: var(--oc-max);
+  margin: 0 auto;
+  padding: 2px 10px 8px;
+  border: 1px solid var(--oc-line-strong);
+  border-top: 0;
+  border-radius: 0 0 var(--oc-r) var(--oc-r);
+  background: var(--oc-panel);
+}
+
+html[data-oc="1"] .pg-composer:focus-within {
+  border-color: var(--oc-accent);
+  box-shadow: inset 0 0 0 1px var(--oc-soft);
+}
+
+html[data-oc="1"] .pg-chat-input {
+  flex: 1 1 auto;
+  min-height: 26px;
+  max-height: 200px;
+  padding: 7px 2px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--oc-fg);
+  font-family: var(--oc-ui);
+  font-size: var(--oc-text-3);
+  line-height: 1.6;
+  resize: none;
+  outline: none;
+}
+
+html[data-oc="1"] .pg-chat-input::placeholder {
+  color: var(--oc-dim);
+  opacity: 1;
+}
+
+html[data-oc="1"] .pg-composer .pg-btn {
+  flex: 0 0 auto;
+  height: 28px;
+  padding: 0 11px;
+  border: 1px solid var(--oc-line-strong);
+  border-radius: var(--oc-r);
+  background: transparent;
+  color: var(--oc-dim);
+  font: inherit;
+  font-size: var(--oc-text-2);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+html[data-oc="1"] .pg-composer .pg-btn.primary {
+  border-color: transparent;
+  background: var(--oc-accent);
+  color: var(--oc-accent-ink);
+  font-weight: 600;
+}
+
+html[data-oc="1"] .pg-composer .pg-btn.primary:hover {
+  filter: brightness(1.06);
+}
+
+html[data-oc="1"] .pg-composer .pg-btn.danger {
+  border-color: var(--oc-err);
+  color: var(--oc-err);
+}
+
+html[data-oc="1"] .pg-composer .pg-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+html[data-oc="1"] .pg-composer .pg-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--oc-ring);
+}
+
+/* hint line -------------------------------------------------------- */
+
+html[data-oc="1"] .oc-hint {
+  order: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: var(--oc-max);
+  margin: 0 auto;
+  padding: 6px 12px 10px;
+  font-size: var(--oc-text-1);
+  color: var(--oc-dim);
+  opacity: 1;
+}
+
+html[data-oc="1"] .oc-hint-keys {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+html[data-oc="1"] .oc-hint-keys kbd {
+  padding: 1px 4px;
+  border: 1px solid var(--oc-line);
+  border-radius: var(--oc-r);
+  background: var(--oc-panel-alt);
+  font-family: var(--oc-mono);
+  font-size: var(--oc-text-1);
+  color: var(--oc-dim);
+}
+
+html[data-oc="1"] .oc-hint-status {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+html[data-oc="1"] .oc-hint-status span {
+  opacity: 1;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ------------------------------------------------------------------ */
+/* editor slide-over                                                  */
+/* ------------------------------------------------------------------ */
+
+html[data-oc="1"] .tab-bar,
+html[data-oc="1"] .editor-area {
+  position: fixed;
+  right: 0;
+  width: var(--oc-editor-w);
+  z-index: var(--oc-z-canvas);
+  background: var(--editor-bg, var(--oc-bg));
+  border-left: 1px solid var(--oc-line);
+  transition: transform 190ms ease, visibility 190ms;
+}
+
+html[data-oc="1"] .tab-bar {
+  top: var(--oc-head-h);
+  height: 36px;
+}
+
+html[data-oc="1"] .editor-area {
+  top: calc(var(--oc-head-h) + 36px);
+  bottom: 0;
+}
+
+html[data-oc="1"]:not([data-oc-editor="open"]) .tab-bar,
+html[data-oc="1"]:not([data-oc-editor="open"]) .editor-area {
+  transform: translateX(100%);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+html[data-oc="1"] .oc-editor-close {
+  position: fixed;
+  top: calc(var(--oc-head-h) + 4px);
+  right: 6px;
+  z-index: var(--oc-z-canvas-top);
+  height: 26px;
+  width: 26px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--oc-line-strong);
+  border-radius: var(--oc-r);
+  background: var(--oc-panel);
+  color: var(--oc-dim);
+  font: inherit;
+  font-size: var(--oc-text-3);
+  line-height: 1;
+  cursor: pointer;
+}
+
+html[data-oc="1"][data-oc-editor="open"] .oc-editor-close {
+  display: inline-flex;
+}
+
+html[data-oc="1"] .oc-editor-close:hover {
+  color: var(--oc-fg);
+}
+
+/* ------------------------------------------------------------------ */
+/* welcome surface                                                    */
+/* ------------------------------------------------------------------ */
+
+#oc-welcome {
+  position: absolute;
+  inset: var(--oc-head-h) 0 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 max(24px, calc(50% - var(--oc-max) / 2 + 24px));
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 160ms ease, visibility 160ms;
+}
+
+#oc-welcome.is-visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.oc-welcome-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 520px;
+  text-align: left;
+}
+
+.oc-greet-mark {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  color: var(--oc-accent);
+}
+
+.oc-greet {
+  margin: 4px 0 0;
+  font-family: var(--display-font, Georgia, serif);
+  font-size: var(--oc-text-display);
+  font-weight: 400;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  color: var(--oc-fg);
+  text-wrap: balance;
+}
+
+.oc-greet-sub {
+  margin: 0;
+  font-size: var(--oc-text-3);
+  line-height: 1.65;
+  color: var(--oc-dim);
+  max-width: 44ch;
+}
+
+/* workspace readout: a definition list, not a stat row. The value is mono so
+ * a folder name reads like a measured field. */
+.oc-greet-meta {
+  display: grid;
+  gap: 3px;
+  width: fit-content;
+  min-width: 220px;
+  max-width: 420px;
+  margin: 12px 0 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--oc-line);
+}
+
+.oc-meta-row {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  column-gap: 12px;
+  align-items: baseline;
+}
+
+.oc-meta-key {
+  margin: 0;
+  font-family: var(--oc-ui);
+  font-size: var(--oc-text-1);
+  color: var(--oc-dim);
+}
+
+.oc-meta-val {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--oc-mono);
+  font-size: var(--oc-text-2);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  color: var(--oc-fg);
+}
+
+.oc-meta-val[data-empty="1"] {
+  font-family: var(--oc-ui);
+  font-size: var(--oc-text-1);
+  color: var(--oc-dim);
+}
+
+.oc-welcome-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.oc-welcome-cta,
+.oc-welcome-ghost {
+  height: 34px;
+  padding: 0 16px;
+  border-radius: var(--oc-r);
+  font-family: var(--oc-ui);
+  font-size: var(--oc-text-3);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+html[data-oc="1"] .oc-welcome-cta {
+  border: 1px solid transparent;
+  background: var(--oc-accent);
+  color: var(--oc-accent-ink);
+}
+
+html[data-oc="1"] .oc-welcome-cta:hover {
+  filter: brightness(1.06);
+}
+
+html[data-oc="1"] .oc-welcome-ghost {
+  border: 1px solid var(--oc-line-strong);
+  background: transparent;
+  color: var(--oc-dim);
+}
+
+html[data-oc="1"] .oc-welcome-ghost:hover {
+  color: var(--oc-fg);
+  background: var(--oc-hover);
+}
+
+html[data-oc="1"] .oc-welcome-cta:focus-visible,
+html[data-oc="1"] .oc-welcome-ghost:focus-visible {
+  outline: none;
+  box-shadow: var(--oc-ring);
+}
+
+.oc-welcome-hints {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: var(--oc-text-1);
+  color: var(--oc-dim);
+}
+
+.oc-welcome-hints kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--oc-line);
+  border-radius: var(--oc-r);
+  background: var(--oc-panel-alt);
+  font-family: var(--oc-mono);
+  font-size: var(--oc-text-1);
+}
+
+.oc-welcome-hints span:not(:last-child) {
+  margin-right: 8px;
+}
+
+/* ------------------------------------------------------------------ */
+/* overlays: palette, files, theme, help                              */
+/* ------------------------------------------------------------------ */
+
+.oc-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--oc-z-overlay);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 14vh 16px 16px;
+  background: var(--backdrop, rgba(5, 6, 7, 0.72));
+  pointer-events: auto;
+}
+
+.oc-overlay[hidden] {
+  display: none;
+}
+
+.oc-modal {
+  width: min(620px, 100%);
+  max-height: 64vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--oc-panel);
+  border: 1px solid var(--oc-line-strong);
+  border-radius: var(--oc-r);
+  box-shadow: var(--oc-shadow);
+  animation: oc-modal-in 130ms ease both;
+}
+
+@keyframes oc-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.oc-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--oc-line);
+}
+
+.oc-modal-title {
+  font-size: var(--oc-text-2);
+  color: var(--oc-dim);
+  flex: 0 0 auto;
+}
+
+.oc-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--oc-line);
+  border-radius: var(--oc-r);
+  background: var(--oc-bg);
+  color: var(--oc-fg);
+  font: inherit;
+  font-size: var(--oc-text-3);
+  outline: none;
+}
+
+.oc-input:focus {
+  border-color: var(--oc-accent);
+  box-shadow: inset 0 0 0 1px var(--oc-soft);
+}
+
+.oc-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.oc-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid transparent;
+  border-radius: var(--oc-r);
+  background: transparent;
+  color: var(--oc-fg);
+  font: inherit;
+  font-size: var(--oc-text-3);
+  text-align: left;
+  cursor: pointer;
+}
+
+.oc-row.is-active,
+.oc-row:hover {
+  background: var(--oc-hover);
+  border-color: var(--oc-line);
+}
+
+.oc-row-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.oc-row-hint {
+  flex: 0 0 auto;
+  font-family: var(--oc-mono);
+  font-size: var(--oc-text-1);
+  color: var(--oc-dim);
+}
+
+.oc-row-icon {
+  flex: 0 0 auto;
+  width: 15px;
+  text-align: center;
+  color: var(--oc-dim);
+}
+
+.oc-row.is-active .oc-row-icon,
+.oc-row:hover .oc-row-icon {
+  color: var(--oc-accent);
+}
+
+.oc-row-sub {
+  display: block;
+  font-size: var(--oc-text-1);
+  color: var(--oc-dim);
+  margin-top: 1px;
+}
+
+.oc-empty {
+  padding: 18px 10px;
+  text-align: center;
+  font-size: var(--oc-text-2);
+  color: var(--oc-dim);
+}
+
+.oc-modal-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--oc-line);
+  font-size: var(--oc-text-1);
+  color: var(--oc-dim);
+}
+
+.oc-modal-foot kbd {
+  padding: 1px 4px;
+  border: 1px solid var(--oc-line);
+  border-radius: var(--oc-r);
+  font-family: var(--oc-mono);
+  font-size: var(--oc-text-1);
+}
+
+/* theme + typography picker */
+.oc-theme-modal {
+  width: min(760px, 96vw);
+  max-height: 78vh;
+}
+
+.oc-modal-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.oc-modal-section + .oc-modal-section {
+  border-top: 1px solid var(--oc-line);
+}
+
+.oc-kicker {
+  margin: 0;
+  padding: 10px 12px 0;
+  font-size: var(--oc-text-1);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--oc-dim);
+}
+
+/* theme cards inside the overlay */
+.oc-themes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  gap: 8px;
+  padding: 10px;
+}
+
+/* typography cards */
+.oc-types {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(186px, 1fr));
+  gap: 6px;
+  padding: 10px;
+}
+
+.oc-type {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border: 1px solid var(--oc-line);
+  border-radius: var(--oc-r);
+  background: transparent;
+  color: var(--oc-fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.oc-type:hover {
+  border-color: var(--oc-line-strong);
+  background: var(--oc-hover);
+}
+
+.oc-type.is-active {
+  border-color: var(--oc-accent);
+  box-shadow: inset 0 0 0 1px var(--oc-soft);
+}
+
+.oc-type-sample {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--oc-line);
+  border-radius: var(--oc-r);
+  background: var(--oc-panel-alt);
+  color: var(--oc-fg);
+  font-size: var(--oc-text-5);
+  line-height: 1;
+}
+
+.oc-type.is-active .oc-type-sample {
+  border-color: var(--oc-accent);
+  color: var(--oc-accent);
+}
+
+.oc-type-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.oc-type-name {
+  font-size: var(--oc-text-2);
+  font-weight: 600;
+}
+
+.oc-type-note {
+  font-size: var(--oc-text-1);
+  color: var(--oc-dim);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.oc-theme {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--oc-line);
+  border-radius: var(--oc-r);
+  background: transparent;
+  color: var(--oc-fg);
+  font: inherit;
+  font-size: var(--oc-text-2);
+  text-align: left;
+  cursor: pointer;
+}
+
+.oc-theme:hover {
+  border-color: var(--oc-line-strong);
+}
+
+.oc-theme.is-active {
+  border-color: var(--oc-accent);
+  box-shadow: inset 0 0 0 1px var(--oc-soft);
+}
+
+.oc-theme-swatch {
+  display: flex;
+  height: 26px;
+  border-radius: var(--oc-r);
+  overflow: hidden;
+  border: 1px solid var(--oc-line);
+}
+
+.oc-theme-swatch i {
+  flex: 1;
+}
+
+.oc-theme-name {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.oc-theme-name small {
+  color: var(--oc-dim);
+  font-size: var(--oc-text-1);
+}
+
+/* toast */
+.oc-toast-host {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%);
+  z-index: var(--oc-z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.oc-toast {
+  padding: 6px 12px;
+  border: 1px solid var(--oc-line-strong);
+  border-radius: var(--oc-r);
+  background: var(--oc-panel);
+  color: var(--oc-fg);
+  font-size: var(--oc-text-2);
+  box-shadow: var(--oc-shadow);
+  animation: oc-row-in 140ms ease both;
+}
+
+.oc-toast.is-error {
+  border-color: var(--oc-err);
+  color: var(--oc-err);
+}
+
+/* ------------------------------------------------------------------ */
+/* skin resets                                                        */
+/* The zen theme layer and the base workbench styles target the same   */
+/* nodes with higher specificity (html[data-pg-theme] .pg-msg.user),   */
+/* so the card chrome they draw is removed here explicitly.            */
+/* ------------------------------------------------------------------ */
+
+html[data-oc="1"] .pg-msg,
+html[data-oc="1"] .pg-msg.user,
+html[data-oc="1"] .pg-msg.assistant,
+html[data-oc="1"] .pg-msg.tool,
+html[data-oc="1"] .pg-msg.error,
+html[data-oc="1"] .pg-msg.system {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  max-width: 100% !important;
+  align-self: stretch !important;
+  padding: 9px 0 !important;
+}
+
+html[data-oc="1"] .pg-msg-left {
+  flex: 0 0 auto !important;
+  flex-direction: row !important;
+  align-items: baseline !important;
+  max-width: none !important;
+  padding: 0 !important;
+  margin: 0 0 4px !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  text-transform: none !important;
+  letter-spacing: 0.01em !important;
+}
+
+/* only the assistant keeps a meta line - tool rows describe themselves */
+html[data-oc="1"] .pg-msg:not(.assistant) .pg-msg-left {
+  display: none !important;
+}
+
+html[data-oc="1"] .pg-msg.assistant .pg-msg-prov,
+html[data-oc="1"] .pg-msg.assistant .pg-msg-model {
+  color: var(--oc-dim) !important;
+  font-weight: 500 !important;
+  font-size: var(--oc-text-1) !important;
+  text-transform: none !important;
+  letter-spacing: 0.01em !important;
+}
+
+html[data-oc="1"] .pg-debate-badge[hidden] {
+  display: none !important;
+}
+
+html[data-oc="1"] .pg-msg-left.user-side,
+html[data-oc="1"] .pg-msg-left.error-side {
+  background: transparent !important;
+  border: 0 !important;
+}
+
+html[data-oc="1"] .pg-msg-prov,
+html[data-oc="1"] .pg-msg-model {
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+}
+
+html[data-oc="1"] .pg-msg-content {
+  gap: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+html[data-oc="1"] .pg-round {
+  background: transparent !important;
+  border: 0 !important;
+}
+
+html[data-oc="1"] .pg-chat-empty {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+
+html[data-oc="1"] .pg-chat-select,
+html[data-oc="1"] .pg-chat-model-btn,
+html[data-oc="1"] .pg-debate-btn {
+  border: 0 !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+}
+
+html[data-oc="1"] .pg-chat-head,
+html[data-oc="1"] .pg-composer {
+  background: var(--oc-panel) !important;
+  box-shadow: none !important;
+}
+
+html[data-oc="1"] .pg-glyph,
+html[data-oc="1"] .oc-glyph {
+  font-family: var(--oc-ui);
+  font-size: var(--oc-text-2);
+}
+
+/* ------------------------------------------------------------------ */
+/* small screens + motion                                             */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 820px) {
+  html[data-oc="1"] {
+    --oc-editor-w: 100vw;
+  }
+
+  html[data-oc="1"][data-oc-editor="open"] .pg-chat-dock {
+    right: 0;
+    opacity: 0.15;
+    pointer-events: none;
+  }
+
+  html[data-oc="1"] .pg-chat-log,
+  html[data-oc="1"] .pg-chat-head,
+  html[data-oc="1"] .pg-composer,
+  html[data-oc="1"] .oc-hint,
+  html[data-oc="1"] .oc-shellout {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-oc="1"] .pg-msg,
+  html[data-oc="1"] .oc-modal,
+  html[data-oc="1"] .oc-toast {
+    animation: none;
+  }
+
+  .oc-head {
+    animation: none !important;
+  }
+
+  #oc-welcome {
+    transition: opacity 1ms linear, visibility 1ms;
+  }
+
+  html[data-oc="1"] .tab-bar,
+  html[data-oc="1"] .editor-area,
+  html[data-oc="1"] .sidebar {
+    transition: none;
+  }
+}

@@ -1,0 +1,38 @@
+# Bağımlılıklar
+node_modules/
+
+# Üçüncü taraf ajan beceri kütüphanesi
+.agents/
+
+# Üretilen kurulum çıktıları
+/installer/
+/dist/
+
+# Günlükler ve geçici dosyalar
+*.log
+*.tmp
+*.bak
+
+# Gizli anahtarlar / ortam dosyaları
+.env
+.env.*
+*.pem
+*.key
+*.pfx
+*.p12
+credentials.json
+secrets.json
+
+# Electron çalışma zamanı ikilileri (GitHub'ın 100 MB dosya sınırı)
+MultiCoder/*.exe
+MultiCoder/*.dll
+MultiCoder/*.pak
+MultiCoder/*.bin
+MultiCoder/*.dat
+MultiCoder/locales/
+MultiCoder/resources/*.exe
+
+# İşletim sistemi dosyaları
+Thumbs.db
+desktop.ini
+.DS_Store

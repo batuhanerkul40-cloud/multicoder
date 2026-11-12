@@ -1,0 +1,20 @@
+{
+  "name": "multicoder",
+  "version": "0.3.0",
+  "description": "Multi-agent collaborative coding IDE: concurrent CRDT editing by multiple AI agents, pluggable providers, VS Code-style extension host.",
+  "main": "dist/main/index.cjs",
+  "private": true,
+  "dependencies": {
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
+    "diff": "^9.0.0",
+    "monaco-editor": "^0.57.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "y-monaco": "^0.1.6",
+    "y-protocols": "^1.0.7",
+    "yjs": "^13.6.19"
+  },
+  "productName": "MultiCoder",
+  "author": "MultiCoder"
+}

@@ -1,0 +1,31 @@
+{
+  "name": "multicoder",
+  "version": "0.2.1",
+  "description": "MultiCoder 0.2.1 — model dropdown, saved settings stay open",
+  "author": "MultiCoder",
+  "private": true,
+  "build": {
+    "appId": "com.multicoder.ide",
+    "productName": "MultiCoder",
+    "directories": {
+      "output": "installer"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MultiCoder"
+    },
+    "artifactName": "MultiCoder-Setup-${version}.${ext}"
+  }
+}
