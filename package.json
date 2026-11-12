@@ -1,7 +1,7 @@
 {
   "name": "multicoder",
-  "version": "0.2.1",
-  "description": "MultiCoder 0.2.1 — model dropdown, saved settings stay open",
+  "version": "0.3.0",
+  "description": "MultiCoder — chat-first desktop AI coding IDE with automatic model discovery",
   "author": "MultiCoder",
   "private": true,
   "build": {

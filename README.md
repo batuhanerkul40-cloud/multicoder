@@ -44,7 +44,7 @@ provider's model list by itself. No hunting for model IDs, no editing config fil
 
 ### Download
 
-**[⬇ MultiCoder-Setup-0.2.1.exe](https://github.com/batuhanerkul40-cloud/multicoder/releases/download/v0.2.1/MultiCoder-Setup-0.2.1.exe)** — 118.8 MB, Windows x64
+**[⬇ MultiCoder-Setup-0.3.0.exe](https://github.com/batuhanerkul40-cloud/multicoder/releases/download/v0.3.0/MultiCoder-Setup-0.3.0.exe)** — 118.8 MB, Windows x64
 
 All versions: [Releases](https://github.com/batuhanerkul40-cloud/multicoder/releases)
 
@@ -91,7 +91,7 @@ TypeScript sources, so electron-builder wraps the existing build:
 npx electron-builder@latest --prepackaged "MultiCoder" --win nsis --x64 --config.electronVersion=45.0.0
 ```
 
-Output: `installer/MultiCoder-Setup-0.2.1.exe`.
+Output: `installer/MultiCoder-Setup-0.3.0.exe`.
 
 ### Project status
 
@@ -138,7 +138,7 @@ model listesini kendisi bulur. Model kimliği aramak, yapılandırma dosyası d�
 
 ### İndirme
 
-**[⬇ MultiCoder-Setup-0.2.1.exe](https://github.com/batuhanerkul40-cloud/multicoder/releases/download/v0.2.1/MultiCoder-Setup-0.2.1.exe)** — 118,8 MB, Windows x64
+**[⬇ MultiCoder-Setup-0.3.0.exe](https://github.com/batuhanerkul40-cloud/multicoder/releases/download/v0.3.0/MultiCoder-Setup-0.3.0.exe)** — 118,8 MB, Windows x64
 
 Tüm sürümler: [Releases](https://github.com/batuhanerkul40-cloud/multicoder/releases)
 
@@ -185,7 +185,7 @@ Depo, orijinal TypeScript kaynaklarını değil **paketlenmiş** uygulamayı
 npx electron-builder@latest --prepackaged "MultiCoder" --win nsis --x64 --config.electronVersion=45.0.0
 ```
 
-Çıktı: `installer/MultiCoder-Setup-0.2.1.exe`.
+Çıktı: `installer/MultiCoder-Setup-0.3.0.exe`.
 
 ### Proje durumu
 
@@ -242,6 +242,13 @@ Keskin, Sade, Terminal, Sıcak. Hepsi Windows'la birlikte gelen yazı tiplerinde
 (Palatino, Bahnschrift, Georgia, Book Antiqua, Cascadia, Sitka, Corbel, Century Gothic, Arial,
 Consolas, Rockwell…) — internetten yazı tipi indirmez. Kod düzenleyicisi kendi sabit yazı tipini
 korur; seçim arayüzü, sohbeti ve panelleri etkiler.
+
+### 0.3.0'da ne değişti?
+
+- **Yürütülebilir dosya bilgileri düzeltildi.** Dosya özelliklerinde artık eski ad değil, `MultiCoder`
+  ve sürüm `0.3.0` görünüyor (Ürün adı, Şirket, Açıklama, Özgün dosya adı).
+- **Sürümler eşitlendi.** Kurulum dosyası adı içindeki uygulamayla aynı sürümü taşıyor.
+- Kurulum dosyası yeniden derlendi.
 
 ### 0.2.1'de ne değişti?
 
