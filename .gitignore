@@ -1,9 +1,6 @@
 # Bağımlılıklar
 node_modules/
 
-# Üçüncü taraf ajan beceri kütüphanesi
-.agents/
-
 # Üretilen kurulum çıktıları
 /installer/
 /dist/
