@@ -99,6 +99,15 @@ MultiCoder is distributed as a packaged desktop application: the repository cont
 app under `MultiCoder/resources/app`, and the installer wraps that build. The technical notes
 below map each change to the file it touches inside that package.
 
+### Known limitations
+
+- Model discovery relies on the provider's OpenAI-compatible `GET /models` endpoint. Providers
+  that do not expose it need the model name typed by hand.
+- On local servers such as Ollama the Base URL must be `http://localhost:11434/v1`.
+- The installer is not code-signed, so SmartScreen warns on first run.
+- **This application was built with vibe coding.** It is written to move fast and is only lightly
+  reviewed — expect rough edges, and read the code before relying on it for anything critical.
+
 ---
 
 ## Türkçe
@@ -288,3 +297,5 @@ taşıdığını gösterir.
 - Save artık pencereyi kapatmadığı için kapatmak isteyen **Cancel** veya sağ üstteki **X**'i
   kullanmalı.
 - Kurulum dosyası imzasızdır; SmartScreen uyarısı beklenen davranıştır.
+- **Bu uygulama vibe coding ile yapılmıştır.** Hızlı ilerlemek için yazıldı ve gözden geçirme
+  hafif tutuldu; kritik işlerde kullanmadan önce kodu incele.
