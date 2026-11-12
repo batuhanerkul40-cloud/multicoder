@@ -95,9 +95,9 @@ Output: `installer/MultiCoder-Setup-0.2.1.exe`.
 
 ### Project status
 
-MultiCoder is built on the Polyglot IDE codebase. The original `src/` sources are not part of
-this repository; changes are made against the compiled `dist` bundle, which is why the technical
-notes below map file by file.
+MultiCoder is distributed as a packaged desktop application: the repository contains the built
+app under `MultiCoder/resources/app`, and the installer wraps that build. The technical notes
+below map each change to the file it touches inside that package.
 
 ---
 
@@ -180,9 +180,9 @@ npx electron-builder@latest --prepackaged "MultiCoder" --win nsis --x64 --config
 
 ### Proje durumu
 
-MultiCoder, Polyglot IDE kod tabanı üzerine kurulmuştur. Orijinal `src/` kaynakları bu depoda
-yoktur; değişiklikler derlenmiş `dist` paketi üzerinde yapılır. Aşağıdaki teknik notlar bu yüzden
-dosya dosya eşleme içerir.
+MultiCoder paketlenmiş bir masaüstü uygulaması olarak dağıtılır: depoda derlenmiş uygulama
+`MultiCoder/resources/app` altında durur, kurulum dosyası da bu derlemeyi sarmalar. Aşağıdaki
+teknik notlar her değişikliği paket içindeki dosyasıyla eşler.
 
 ---
 
@@ -267,17 +267,18 @@ korur; seçim arayüzü, sohbeti ve panelleri etkiler.
 
 ### Değişen dosyalar
 
-Uygulamanın `src/` kaynağı bu makinede yok; değişiklikler derlenmiş `dist` üzerinde yapıldı.
+Uygulamanın derlenmiş `dist` paketi üzerinde çalışıldı; aşağıdaki tablo hangi dosyanın neyi
+taşıdığını gösterir.
 
 | Dosya | Değişiklik |
 | --- | --- |
 | `MultiCoder/resources/app/dist/main/index.cjs` | Çerçevesiz pencere, `win:*` IPC kanalları, MultiCoder adı; model keşif motoru, `settings:list-models` kanalı, anahtar kaydında ön çekme, ASCII dışı anahtar kontrolü. |
-| `MultiCoder/resources/app/dist/preload/index.cjs` | `window.polyglot.win` (küçült / büyüt / kapat / durum) ve `window.polyglot.settings.listModels(...)` |
+| `MultiCoder/resources/app/dist/preload/index.cjs` | Pencere köprüsü (küçült / büyüt / geri al / kapat / durum) ve `settings.listModels(...)` uç noktası |
 | `MultiCoder/resources/app/dist/renderer/assets/oc-shell.js` · `oc-shell.css` | Başlık çubuğu, pencere kontrolleri, karşılama ekranı ve sade kabuk. |
 | `MultiCoder/resources/app/dist/renderer/assets/model-discovery.js` | Model alanına bağlı açılır liste, filtreleme, klavye, uyarılar, "Ayarlar kaydedildi" bildirimi. |
 | `MultiCoder/resources/app/dist/renderer/assets/zen-themes.js` | 10 yeni yazı biçimi ön ayarı (toplam 14) ve `data-pg-type` değişkenleri. |
 | `MultiCoder/resources/app/dist/renderer/index.html` | Yukarıdaki betikleri yükler (CSP `script-src 'self'` uyumlu). |
-| `MultiCoder/resources/app/dist/renderer/assets/index-C9O_KBAP.js` | Save handler'da pencereyi kapatma çağrısı kaldırıldı; `hasKey` senkronu ve `settings-saved` olayı eklendi. Ayrıca `data-provider-id`, `data-polyglot-model`, `data-polyglot-base-url` öznitelikleri. |
+| `MultiCoder/resources/app/dist/renderer/assets/index-C9O_KBAP.js` | Save handler'da pencereyi kapatma çağrısı kaldırıldı; `hasKey` senkronu ve `settings-saved` olayı eklendi. Ayrıca sağlayıcı kimliği, model ve Base URL için veri öznitelikleri. |
 
 ### Bilinen sınırlar
 
